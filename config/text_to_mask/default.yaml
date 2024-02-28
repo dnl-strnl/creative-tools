@@ -1,0 +1,16 @@
+image: ""
+text: ""
+delimiter: "|"
+model: CIDAS/clipseg-rd64-refined
+output_size: null
+confidence_threshold: 0.5
+min_instance_area: 384
+mask: true
+overlay: true
+grid: true
+mask_alpha: 0.5
+mask_colormap: gray
+output: ${oc.env:CWD, '.'}
+
+defaults:
+  - ../hydra.yaml
