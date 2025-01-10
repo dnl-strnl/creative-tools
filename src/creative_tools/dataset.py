@@ -107,7 +107,7 @@ def main(cfg: DictConfig):
             prompts.append(prompt)
             bar.set_description(f'{prompt=}'[:32])
 
-            while (alias := id_image()) in aliases: pass
+            while (alias := unique_id()) in aliases: pass
             aliases.append(alias)
 
             local_file = os.path.join('images', f'{alias}.png')
@@ -141,19 +141,20 @@ def main(cfg: DictConfig):
     dataset_grid.save(grid_file)
     print(f'done. created {grid_file}')
 
-    train_set, val_set, test_set = split_dataset(
-        samples, cfg.traintest_split, cfg.testval_split
-    )
-
-    data_files = dict(
-        train=os.path.join(outdir, 'train.jsonl'),
-        val=os.path.join(outdir, 'val.jsonl'),
-        test=os.path.join(outdir, 'test.jsonl'),
-    )
-
-    save_split(train_set, data_files['train'])
-    save_split(val_set, data_files['val'])
-    save_split(test_set, data_files['test'])
+    if cfg.traintest_split is None and cfg.testval_split is None:
+        save_split(samples, data_files := dict(train=['metadata.jsonl']))
+    else:
+        train_set, val_set, test_set = split_dataset(
+            samples, cfg.traintest_split, cfg.testval_split
+        )
+        data_files = dict(
+            train=os.path.join(outdir, 'train.jsonl'),
+            val=os.path.join(outdir, 'val.jsonl'),
+            test=os.path.join(outdir, 'test.jsonl'),
+        )
+        save_split(train_set, data_files['train'])
+        save_split(val_set, data_files['val'])
+        save_split(test_set, data_files['test'])
 
     dataset = load_dataset('json', data_files=data_files)
 

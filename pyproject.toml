@@ -24,6 +24,16 @@ mlx-lm = "^0.0.13"
 mlx = "^0.4.0"
 dvc = "^3.30.0"
 dvclive = "^3.30.0"
+requests = "^2.32.3"
+beautifulsoup4 = "^4.12.3"
+selenium = "^4.22.0"
+moviepy = "^1.0.3"
+torchserve = "0.8.1"
+chromadb = "^0.5.23"
+flask = "^3.1.0"
+diffusers = "^0.32.1"
+accelerate = "^1.2.1"
+torch-model-archiver = "^0.12.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
@@ -31,3 +41,6 @@ pytest = "^5.2"
 [[tool.poetry.packages]]
 include = "creative_tools"
 from = "src"
+
+[tool.poetry.scripts]
+create = "creative_tools.cli:main"

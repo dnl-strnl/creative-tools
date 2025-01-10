@@ -2,9 +2,9 @@ input: ""
 name: dalle2
 regex: DALL[·-]E (?:\d{4}-\d{2}-\d{2}|\d{4}-\d{3}) (?:\d{2}[:.]\d{2}\.\d{2}) - (.+?)\.\w+$
 output: ${oc.env:CWD, '.'}
-traintest_split: 0.9
-testval_split: 0.75
-preview_grid: 2
+traintest_split: 0.95
+testval_split: 0.95
+preview_grid: 3
 require_text: true
 
 defaults:
