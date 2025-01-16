@@ -1,10 +1,15 @@
+import cv2
 from datasets import load_dataset
 import glob
+import numpy as np
 import os
 from pathlib import Path
+from PIL import Image
 import uuid
 
-id_image = lambda width=4: str(uuid.uuid4())[:width]
+# default function for uniquely identifying IDs, filenames, or other artifacts.
+unique_id = lambda width=4: str(uuid.uuid4())[:width]
+# default function for converting a text "prompt" to a concise, spaceless string.
 format_prompt = lambda prompt:prompt.replace(' ', '_')[:64]
 
 def configure_path(path):
@@ -22,7 +27,48 @@ def load_images(input_path, search_pattern= f'**/*.png', default_split='train'):
         found = glob.glob(os.path.join(input_path, search_pattern), recursive=True)
         if not found:
             found = glob.glob(os.path.join(input_path, f'*.png'), recursive=False)
-        return found
+        return list(found)
     else:
         dataset = load_dataset(input_path, split=default_split)
         return [sample['file_path'] for sample in dataset]
+
+def array_to_image(array: np.ndarray) -> Image:
+    """
+    Converts a NumPy array to a PIL Image.
+
+    :param array: input image array.
+    :type array: np.ndarray
+    :return: RGB-formatted PIL Image.
+    :rtype: PIL.Image
+    """
+    rgb_img = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(rgb_img)
+    return pil_img
+
+def image_to_array(image:Image) -> np.ndarray:
+    """
+    Converts a PIL Image to a NumPy array.
+
+    :param array: input image.
+    :type image: PIL.Image
+    :return: BGR-formatted NumPy array.
+    :rtype: np.ndarray
+    """
+    rgb_image = np.asarray(image)
+    cv2_img = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
+    return cv2_img
+
+def image_to_bytes(image) -> bytes:
+    """
+    Converts a PIL Image to PNG bytes.
+
+    :param image: input image.
+    :type image: PIL.Image
+    :return: PNG-formatted image as bytes.
+    :rtype: bytes
+    """
+    bytes_ = io.BytesIO()
+    image.save(bytes_, format="PNG")
+    bytes_.seek(0)
+    data = bytes_.read()
+    return data
