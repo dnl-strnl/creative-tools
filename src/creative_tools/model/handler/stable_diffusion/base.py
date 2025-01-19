@@ -59,12 +59,12 @@ class Handler(BaseHandler):
         num_images_per_prompt = data.pop('batch', 1)
 
         base64_image = data.pop('image', None)
-        try:
+
+        image = None
+        if base64_image:
             image_bytes = base64.b64decode(base64_image)
             image = Image.open(io.BytesIO(image_bytes))
-        except Exception as decode_image_prompt_exception:
-            raise ValueError(f"{decode_image_prompt_exception=}")
-            image = None
+
         kwargs = {k:v for k,v in data.items() if not k in ['prompt','seed','batch']}
         if image is not None:
             kwargs['image'] = image

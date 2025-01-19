@@ -147,16 +147,13 @@ def main(cfg: DictConfig):
         train_set, val_set, test_set = split_dataset(
             samples, cfg.traintest_split, cfg.testval_split
         )
-        data_files = dict(
-            train=os.path.join(outdir, 'train.jsonl'),
-            val=os.path.join(outdir, 'val.jsonl'),
-            test=os.path.join(outdir, 'test.jsonl'),
-        )
-        save_split(train_set, data_files['train'])
-        save_split(val_set, data_files['val'])
-        save_split(test_set, data_files['test'])
 
-    dataset = load_dataset('json', data_files=data_files)
+    save_split(train_set, train := str(Path(outdir) / 'train.jsonl'))
+    save_split(val_set, val := str(Path(outdir) / 'val.jsonl'))
+    save_split(test_set, test := str(Path(outdir) / 'test.jsonl'))
+    save_split(train_set + val_set + test_set, str(Path(outdir) / 'data.jsonl'))
+
+    dataset = load_dataset('json', data_files=dict(train=train, val=val, test=test))
 
     samples = dataset['train']
     print(f'{samples[0]=}\n{skipped=}')

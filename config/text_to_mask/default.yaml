@@ -1,3 +1,6 @@
+defaults:
+  - ../hydra.yaml
+
 image: ""
 text: ""
 delimiter: "|"
@@ -11,6 +14,3 @@ grid: true
 mask_alpha: 0.5
 mask_colormap: gray
 output: ${oc.env:CWD, '.'}
-
-defaults:
-  - ../hydra.yaml
