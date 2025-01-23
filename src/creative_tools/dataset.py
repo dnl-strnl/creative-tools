@@ -7,6 +7,7 @@ import json
 import numpy as np
 from omegaconf import DictConfig
 import os
+from pathlib import Path
 from PIL import Image
 import re
 import shutil
@@ -95,17 +96,21 @@ def main(cfg: DictConfig):
         try:
             fname = fname.replace('\n','')
             image_source = os.path.basename(os.path.dirname(fname))
-            match = re.search(cfg.regex, fname)
+            # default to extracting prompt from filename.
+            prompt = Path(fname).stem
 
-            if match:
-                prompt = match.group(1)
-            else:
-                if cfg.require_text:
-                    raise Exception(f'{cfg.regex} >> {fname}')
+            if cfg.regex:
+                match = re.search(cfg.regex, fname)
+                if match:
+                    prompt = match.group(1)
                 else:
-                    prompt = ''
+                    if cfg.require_text:
+                        raise Exception(f'{cfg.regex} >> {fname}')
+                    else:
+                        prompt = ''
+
             prompts.append(prompt)
-            bar.set_description(f'{prompt=}'[:32])
+            bar.set_description(f'{prompt=}'[:50])
 
             while (alias := unique_id()) in aliases: pass
             aliases.append(alias)
