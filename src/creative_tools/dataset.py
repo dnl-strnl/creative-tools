@@ -7,6 +7,7 @@ import json
 import numpy as np
 from omegaconf import DictConfig
 import os
+from pathlib import Path
 from PIL import Image
 import re
 import shutil
@@ -95,17 +96,21 @@ def main(cfg: DictConfig):
         try:
             fname = fname.replace('\n','')
             image_source = os.path.basename(os.path.dirname(fname))
-            match = re.search(cfg.regex, fname)
+            # default to extracting prompt from filename.
+            prompt = Path(fname).stem
 
-            if match:
-                prompt = match.group(1)
-            else:
-                if cfg.require_text:
-                    raise Exception(f'{cfg.regex} >> {fname}')
+            if cfg.regex:
+                match = re.search(cfg.regex, fname)
+                if match:
+                    prompt = match.group(1)
                 else:
-                    prompt = ''
+                    if cfg.require_text:
+                        raise Exception(f'{cfg.regex} >> {fname}')
+                    else:
+                        prompt = ''
+
             prompts.append(prompt)
-            bar.set_description(f'{prompt=}'[:32])
+            bar.set_description(f'{prompt=}'[:50])
 
             while (alias := unique_id()) in aliases: pass
             aliases.append(alias)
@@ -147,16 +152,13 @@ def main(cfg: DictConfig):
         train_set, val_set, test_set = split_dataset(
             samples, cfg.traintest_split, cfg.testval_split
         )
-        data_files = dict(
-            train=os.path.join(outdir, 'train.jsonl'),
-            val=os.path.join(outdir, 'val.jsonl'),
-            test=os.path.join(outdir, 'test.jsonl'),
-        )
-        save_split(train_set, data_files['train'])
-        save_split(val_set, data_files['val'])
-        save_split(test_set, data_files['test'])
 
-    dataset = load_dataset('json', data_files=data_files)
+    save_split(train_set, train := str(Path(outdir) / 'train.jsonl'))
+    save_split(val_set, val := str(Path(outdir) / 'val.jsonl'))
+    save_split(test_set, test := str(Path(outdir) / 'test.jsonl'))
+    save_split(train_set + val_set + test_set, str(Path(outdir) / 'data.jsonl'))
+
+    dataset = load_dataset('json', data_files=dict(train=train, val=val, test=test))
 
     samples = dataset['train']
     print(f'{samples[0]=}\n{skipped=}')

@@ -18,19 +18,18 @@ def configure_path(path):
     conf_path = proj_root / f'config/{tool_path.stem}'
     return str(conf_path)
 
-def load_images(input_path, search_pattern= f'**/*.png', default_split='train'):
+def load_images(input_path, search_pattern='**/*.[jp][pn][eg]*', default_split='train'):
     if isinstance(input_path, list):
         return input_path
-    elif isinstance(input_path, str) and os.path.isfile(input_path):
-        return [input_path]
-    elif isinstance(input_path, str) and os.path.isdir(input_path):
-        found = glob.glob(os.path.join(input_path, search_pattern), recursive=True)
-        if not found:
-            found = glob.glob(os.path.join(input_path, f'*.png'), recursive=False)
-        return list(found)
-    else:
-        dataset = load_dataset(input_path, split=default_split)
-        return [sample['file_path'] for sample in dataset]
+
+    if isinstance(input_path, str):
+        if os.path.isfile(input_path):
+            return [input_path]
+        elif os.path.isdir(input_path):
+            return glob.glob(os.path.join(input_path, search_pattern), recursive=True)
+
+    dataset = load_dataset(input_path, split=default_split)
+    return [sample['file_path'] for sample in dataset]
 
 def array_to_image(array: np.ndarray) -> Image:
     """
