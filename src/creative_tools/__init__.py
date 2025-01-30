@@ -21,10 +21,11 @@ def configure_path(path):
 def load_images(input_path, search_pattern='**/*.[jp][pn][eg]*', default_split='train'):
     if isinstance(input_path, list):
         return input_path
+
     if isinstance(input_path, str):
         if os.path.isfile(input_path):
             return [input_path]
-        if os.path.isdir(input_path):
+        elif os.path.isdir(input_path):
             return glob.glob(os.path.join(input_path, search_pattern), recursive=True)
 
     dataset = load_dataset(input_path, split=default_split)
