@@ -1,0 +1,19 @@
+prompt_file: null
+
+images_dir: null
+images_src: null
+
+output_dir:  ${hydra:runtime.cwd}/${hydra:run.dir}/images
+
+db_name: prompts
+db_path: ${hydra:runtime.cwd}/data/${db_name}.db
+
+text_embedding_model_host: http://127.0.0.1:8080
+text_embedding_model_name: mobileclip_s0
+text_embedding_model_addr: ${text_embedding_model_host}/predictions/${text_embedding_model_name}
+
+top_k: 10
+
+mode: dataset
+traintest_split: 0.9
+testval_split: 0.9
