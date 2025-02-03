@@ -56,3 +56,12 @@ poetry run python -m creative_tools.text_to_mask input=custom-dataset text="your
 
 ###### Mask
 ![text-to-mask](assets/text-to-mask.png)
+
+
+#### Auto-Annotate Images with Existing Text from a Prompt Database
+
+The `prompt_match` tool creates annotations for an image dataset from an existing set of text prompts.
+
+```bash
+poetry run python -m creative_tools.prompt_match prompt_file=$DALLE2_DATASET/prompts.txt" images_dir="./data/DALL-E 3" images_src="DALL-E 3"
+```
