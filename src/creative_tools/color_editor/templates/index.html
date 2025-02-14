@@ -1,0 +1,432 @@
+<html>
+<head>
+    <title>SVG Color Editor</title>
+    <style>
+        body {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .color-history {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            min-height: 40px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .color-swatch.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px #000;
+            position: relative;
+        }
+        .color-swatch.active::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 10px;
+            height: 10px;
+            background: #000;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .svg-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+            background: #fff;
+            height: 600px;
+        }
+        .svg-wrapper {
+            transform-origin: 0 0;
+            position: absolute;
+            shape-rendering: geometricPrecision;
+            text-rendering: geometricPrecision;
+            width: 100%;
+            height: 100%;
+        }
+        .svg-wrapper svg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #colorPicker {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1000;
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            background: white;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .zoom-controls button {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .zoom-controls button:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>SVG Color Editor</h1>
+
+    <div class="controls">
+        <input type="file" id="svgInput" accept=".svg">
+        <button id="saveBtn">Save Copy</button>
+        <button id="resetBtn">Reset View</button>
+    </div>
+
+    <div class="color-history" id="colorHistory"></div>
+
+    <div class="svg-container" id="svgContainer">
+        <div class="svg-wrapper" id="editableSvg"></div>
+        <div class="zoom-controls">
+            <button id="zoomIn">+</button>
+            <button id="zoomOut">-</button>
+        </div>
+    </div>
+
+    <div id="colorPicker">
+        <input type="color" id="colorInput">
+        <button id="applyColor">Apply</button>
+    </div>
+
+    <script>
+        let currentElement = null;
+        let usedColors = new Set();
+        let scale = 1;
+        let dragStart = { x: 0, y: 0 };
+        let currentPosition = { x: 0, y: 0 };
+        let isDragging = false;
+
+        const colorPicker = document.getElementById('colorPicker');
+        const colorInput = document.getElementById('colorInput');
+        const svgContainer = document.getElementById('svgContainer');
+        const svgWrapper = document.getElementById('editableSvg');
+        const colorHistory = document.getElementById('colorHistory');
+
+        function updateTransform() {
+            svgWrapper.style.transform = `translate(${currentPosition.x}px, ${currentPosition.y}px) scale(${scale})`;
+        }
+
+        let activeColor = null;
+        let isPaintMode = false;
+
+        function addColorToHistory(color) {
+            if (!usedColors.has(color)) {
+                usedColors.add(color);
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.dataset.color = color;
+
+                swatch.addEventListener('click', () => {
+                    // Deactivate all swatches.
+                    document.querySelectorAll('.color-swatch').forEach(s => {
+                        s.classList.remove('active');
+                    });
+
+                    if (activeColor === color) {
+                        // If clicking the same color, deactivate paint mode.
+                        activeColor = null;
+                        isPaintMode = false;
+                        swatch.classList.remove('active');
+                    } else {
+                        // Activate new color.
+                        activeColor = color;
+                        isPaintMode = true;
+                        swatch.classList.add('active');
+                    }
+                });
+
+                colorHistory.appendChild(swatch);
+            }
+        }
+
+        document.getElementById('svgInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const svgContent = e.target.result;
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `svg=${encodeURIComponent(svgContent)}`
+                });
+
+                const data = await response.json();
+
+                // Reset zoom and position.
+                scale = 1;
+                currentPosition = { x: 0, y: 0 };
+                updateTransform();
+
+                // Clear color history.
+                usedColors.clear();
+                colorHistory.innerHTML = '';
+
+                // Display SVG.
+                document.getElementById('editableSvg').innerHTML = data.svg;
+
+                // Get the SVG element.
+                const editableSvg = document.getElementById('editableSvg').querySelector('svg');
+
+                // Function to fit SVG to container.
+                const fitSvgToContainer = () => {
+                    const container = svgContainer.getBoundingClientRect();
+                    const svgRect = editableSvg.getBoundingClientRect();
+
+                    // Get SVG's natural dimensions.
+                    const svgWidth = editableSvg.viewBox.baseVal.width || svgRect.width;
+                    const svgHeight = editableSvg.viewBox.baseVal.height || svgRect.height;
+
+                    // Calculate scale to fit.
+                    const scaleX = container.width / svgWidth;
+                    const scaleY = container.height / svgHeight;
+                    scale = Math.min(scaleX, scaleY) * 0.9; // 90% of fit size
+
+                    // Center the SVG.
+                    currentPosition.x = (container.width - (svgWidth * scale)) / 2;
+                    currentPosition.y = (container.height - (svgHeight * scale)) / 2;
+
+                    updateTransform();
+                };
+
+                // Set initial SVG styles.
+                editableSvg.style.width = '100%';
+                editableSvg.style.height = '100%';
+
+                // Ensure SVG has proper viewBox.
+                if (!editableSvg.getAttribute('viewBox')) {
+                    const width = editableSvg.getAttribute('width') || '100%';
+                    const height = editableSvg.getAttribute('height') || '100%';
+                    editableSvg.setAttribute('viewBox', `0 0 ${parseFloat(width)} ${parseFloat(height)}`);
+                }
+
+                // Fit SVG after a short delay to ensure proper rendering.
+                setTimeout(fitSvgToContainer, 100);
+
+                // Add click handlers.
+                addClickHandlers(editableSvg);
+            };
+            reader.readAsText(file);
+        });
+
+        function addClickHandlers(svg) {
+            const elements = svg.getElementsByTagName('*');
+            for (let element of elements) {
+                element.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
+                    if (isPaintMode && activeColor) {
+                        // If in paint mode, apply the active color directly.
+                        applyColorToElement(element, activeColor);
+                    } else {
+                        // Otherwise, show color picker.
+                        currentElement = element;
+                        colorPicker.style.display = 'block';
+                        const rect = svgContainer.getBoundingClientRect();
+                        colorPicker.style.left = (e.pageX + 10) + 'px';
+                        colorPicker.style.top = (e.pageY + 10) + 'px';
+
+                        let currentColor = element.getAttribute('fill') ||
+                                         element.getAttribute('stroke') ||
+                                         '#000000';
+                        if (currentColor !== 'none') {
+                            colorInput.value = currentColor;
+                        }
+                    }
+                });
+            }
+        }
+
+        // Pan functionality.
+        svgContainer.addEventListener('mousedown', (e) => {
+            if (e.target === svgContainer || e.target === svgWrapper) {
+                isDragging = true;
+                dragStart = {
+                    x: e.clientX - currentPosition.x,
+                    y: e.clientY - currentPosition.y
+                };
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                currentPosition = {
+                    x: e.clientX - dragStart.x,
+                    y: e.clientY - dragStart.y
+                };
+                updateTransform();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Zoom controls
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            // Zoom towards center of container
+            const rect = svgContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const x = (centerX - currentPosition.x) / scale;
+            const y = (centerY - currentPosition.y) / scale;
+
+            scale *= 1.2;
+
+            currentPosition.x = centerX - x * scale;
+            currentPosition.y = centerY - y * scale;
+
+            updateTransform();
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            // Zoom out from center
+            const rect = svgContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const x = (centerX - currentPosition.x) / scale;
+            const y = (centerY - currentPosition.y) / scale;
+
+            scale /= 1.2;
+
+            currentPosition.x = centerX - x * scale;
+            currentPosition.y = centerY - y * scale;
+
+            updateTransform();
+        });
+
+        // Mouse wheel zoom
+        svgContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            // Get mouse position relative to container.
+            const rect = svgContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Calculate position relative to current scale.
+            const x = (mouseX - currentPosition.x) / scale;
+            const y = (mouseY - currentPosition.y) / scale;
+
+            // Update scale.
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = scale * delta;
+
+            // Calculate new position to zoom towards mouse.
+            currentPosition.x = mouseX - x * newScale;
+            currentPosition.y = mouseY - y * newScale;
+
+            scale = newScale;
+            updateTransform();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            scale = 1;
+            currentPosition = { x: 0, y: 0 };
+            updateTransform();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!colorPicker.contains(e.target) &&
+                !e.target.closest('#editableSvg')) {
+                colorPicker.style.display = 'none';
+            }
+        });
+
+        function applyColorToElement(element, color) {
+            // Apply color to element
+            if (element.getAttribute('fill') &&
+                element.getAttribute('fill') !== 'none') {
+                element.setAttribute('fill', color);
+            }
+
+            if (element.getAttribute('stroke') &&
+                element.getAttribute('stroke') !== 'none') {
+                element.setAttribute('stroke', color);
+            }
+
+            const style = element.getAttribute('style');
+            if (style) {
+                const newStyle = style
+                    .replace(/(fill:\s*)(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgb\([^)]+\))/,
+                            `$1${color}`)
+                    .replace(/(stroke:\s*)(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgb\([^)]+\))/,
+                            `$1${color}`);
+                element.setAttribute('style', newStyle);
+            }
+        }
+
+        document.getElementById('applyColor').addEventListener('click', () => {
+            if (currentElement && colorInput.value) {
+                const newColor = colorInput.value;
+                applyColorToElement(currentElement, newColor);
+                addColorToHistory(newColor);
+                colorPicker.style.display = 'none';
+            }
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const editedSvg = document.getElementById('editableSvg').innerHTML;
+            const blob = new Blob([editedSvg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'edited_svg.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
