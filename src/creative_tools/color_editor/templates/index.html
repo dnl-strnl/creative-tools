@@ -228,7 +228,7 @@
                     // Calculate scale to fit.
                     const scaleX = container.width / svgWidth;
                     const scaleY = container.height / svgHeight;
-                    scale = Math.min(scaleX, scaleY) * 0.9; // 90% of fit size
+                    scale = Math.min(scaleX, scaleY) * 0.9;
 
                     // Center the SVG.
                     currentPosition.x = (container.width - (svgWidth * scale)) / 2;
@@ -310,9 +310,9 @@
             isDragging = false;
         });
 
-        // Zoom controls
+        // Zoom controls.
         document.getElementById('zoomIn').addEventListener('click', () => {
-            // Zoom towards center of container
+            // Zoom towards center of container.
             const rect = svgContainer.getBoundingClientRect();
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
@@ -329,7 +329,7 @@
         });
 
         document.getElementById('zoomOut').addEventListener('click', () => {
-            // Zoom out from center
+            // Zoom out from center.
             const rect = svgContainer.getBoundingClientRect();
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
@@ -345,7 +345,7 @@
             updateTransform();
         });
 
-        // Mouse wheel zoom
+        // Mouse wheel zoom.
         svgContainer.addEventListener('wheel', (e) => {
             e.preventDefault();
 
