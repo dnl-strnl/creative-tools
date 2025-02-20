@@ -68,5 +68,5 @@ poetry run python -m creative_tools.prompt_match prompt_file="$DALLE2_DATASET/pr
 
 The `color_edit` tool vectorizes images and allows for point-and-click color editing of different regions.
 ```bash
-poetry run python -m creative_tools.prompt_match prompt_file=$DALLE2_DATASET/prompts.txt images_dir="./data/DALL-E 3" images_src="DALL-E 3"
+poetry run python -m creative_tools.color_editor.app
 ```
